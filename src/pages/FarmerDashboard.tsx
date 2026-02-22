@@ -55,6 +55,9 @@ const FarmerDashboard: React.FC = () => {
   const [productImages, setProductImages] = useState<ProductImage[]>([]);
   const [editingProductId, setEditingProductId] = useState<number | string | null>(null);
   const [editImages, setEditImages] = useState<ProductImage[]>([]);
+  const [editForm, setEditForm] = useState<{ name: string; price: string; quantity: string; description: string; method: string }>({
+    name: '', price: '', quantity: '', description: '', method: 'Organic',
+  });
   const fileInputRef = useRef<HTMLInputElement>(null);
   const editFileInputRef = useRef<HTMLInputElement>(null);
   const quickUploadRef = useRef<HTMLInputElement>(null);
@@ -423,7 +426,10 @@ const FarmerDashboard: React.FC = () => {
                   onError={(e) => { (e.target as HTMLImageElement).src = 'https://via.placeholder.com/80x60?text=Product'; }} />
                 <div className="dp-info">
                   <h4>{p.name}</h4>
-                  <p>₹{p.price}/{p.unit} • {p.availableQty} {t('available')}</p>
+                  <p>₹{p.price}/{p.unit} • {p.availableQty > 0
+                    ? <span>{p.availableQty} {t('available')}</span>
+                    : <span style={{ color: '#dc2626', fontWeight: 600 }}>Sold Out</span>
+                  }</p>
                 </div>
                 <div className="dp-actions">
                   <button className="dp-btn dp-edit" title={t('edit')}
@@ -434,6 +440,13 @@ const FarmerDashboard: React.FC = () => {
                         setEditImages([]);
                       } else {
                         setEditingProductId(p.id);
+                        setEditForm({
+                          name: p.name,
+                          price: String(p.price),
+                          quantity: String(p.availableQty),
+                          description: p.description,
+                          method: p.farmingMethod,
+                        });
                         setEditImages([]);
                       }
                     }}
@@ -441,12 +454,12 @@ const FarmerDashboard: React.FC = () => {
                   <button className="dp-btn dp-sold" title={t('markSoldOut')}
                     onClick={() => {
                       updateProductInStore(p.id, { availableQty: 0 });
-                      alert(`"${p.name}" marked as sold out.`);
                     }}
-                  >—</button>
+                    style={p.availableQty === 0 ? { opacity: 0.5 } : {}}
+                  >{p.availableQty === 0 ? '✓' : '—'}</button>
                   <button className="dp-btn dp-delete" title={t('delete')}
                     onClick={() => {
-                      if (window.confirm(`Are you sure you want to delete "${p.name}"?`)) {
+                      if (window.confirm(`Delete "${p.name}"? This cannot be undone.`)) {
                         removeProduct(p.id);
                         if (editingProductId === p.id) {
                           editImages.forEach(img => URL.revokeObjectURL(img.preview));
@@ -458,22 +471,75 @@ const FarmerDashboard: React.FC = () => {
                   >×</button>
                 </div>
 
-                {/* Inline edit panel with image upload */}
+                {/* Full inline edit panel */}
                 {editingProductId === p.id && (
                   <div style={{
-                    width: '100%', marginTop: 12, padding: 14,
+                    width: '100%', marginTop: 12, padding: 16,
                     background: '#f9fafb', borderRadius: 12,
                     border: '1px solid #e5e7eb',
                   }}>
-                    <p style={{ fontSize: 13, fontWeight: 600, margin: '0 0 10px', color: '#333' }}>
-                      Update images for <span style={{ color: '#16a34a' }}>{p.name}</span>
+                    <p style={{ fontSize: 14, fontWeight: 700, margin: '0 0 12px', color: '#16a34a' }}>
+                      ✏️ Editing: {p.name}
                     </p>
+
+                    {/* Product Name */}
+                    <div style={{ marginBottom: 10 }}>
+                      <label style={{ fontSize: 12, fontWeight: 600, color: '#555', display: 'block', marginBottom: 4 }}>Product Name</label>
+                      <input type="text" value={editForm.name}
+                        onChange={(e) => setEditForm(prev => ({ ...prev, name: e.target.value }))}
+                        style={{ width: '100%', padding: '8px 10px', borderRadius: 8, border: '1.5px solid #d1d5db', fontSize: 14, boxSizing: 'border-box' }}
+                      />
+                    </div>
+
+                    {/* Price & Quantity */}
+                    <div style={{ display: 'flex', gap: 10, marginBottom: 10 }}>
+                      <div style={{ flex: 1 }}>
+                        <label style={{ fontSize: 12, fontWeight: 600, color: '#555', display: 'block', marginBottom: 4 }}>Price (₹/{p.unit})</label>
+                        <input type="number" value={editForm.price}
+                          onChange={(e) => setEditForm(prev => ({ ...prev, price: e.target.value }))}
+                          style={{ width: '100%', padding: '8px 10px', borderRadius: 8, border: '1.5px solid #d1d5db', fontSize: 14, boxSizing: 'border-box' }}
+                        />
+                      </div>
+                      <div style={{ flex: 1 }}>
+                        <label style={{ fontSize: 12, fontWeight: 600, color: '#555', display: 'block', marginBottom: 4 }}>Stock ({p.unit})</label>
+                        <input type="number" value={editForm.quantity}
+                          onChange={(e) => setEditForm(prev => ({ ...prev, quantity: e.target.value }))}
+                          style={{ width: '100%', padding: '8px 10px', borderRadius: 8, border: '1.5px solid #d1d5db', fontSize: 14, boxSizing: 'border-box' }}
+                        />
+                      </div>
+                    </div>
+
+                    {/* Farming Method */}
+                    <div style={{ marginBottom: 10 }}>
+                      <label style={{ fontSize: 12, fontWeight: 600, color: '#555', display: 'block', marginBottom: 4 }}>Farming Method</label>
+                      <select value={editForm.method}
+                        onChange={(e) => setEditForm(prev => ({ ...prev, method: e.target.value }))}
+                        style={{ width: '100%', padding: '8px 10px', borderRadius: 8, border: '1.5px solid #d1d5db', fontSize: 14, boxSizing: 'border-box' }}
+                      >
+                        <option value="Organic">Organic</option>
+                        <option value="Natural">Natural</option>
+                        <option value="Chemical">Chemical</option>
+                      </select>
+                    </div>
+
+                    {/* Description */}
+                    <div style={{ marginBottom: 10 }}>
+                      <label style={{ fontSize: 12, fontWeight: 600, color: '#555', display: 'block', marginBottom: 4 }}>Description</label>
+                      <textarea value={editForm.description}
+                        onChange={(e) => setEditForm(prev => ({ ...prev, description: e.target.value }))}
+                        rows={2}
+                        style={{ width: '100%', padding: '8px 10px', borderRadius: 8, border: '1.5px solid #d1d5db', fontSize: 14, resize: 'vertical', boxSizing: 'border-box' }}
+                      />
+                    </div>
 
                     {/* Current image */}
                     <div style={{ marginBottom: 10 }}>
-                      <span style={{ fontSize: 12, color: '#888' }}>Current image:</span>
-                      <div style={{ width: 72, height: 72, borderRadius: 10, overflow: 'hidden', border: '2px solid #e5e7eb', marginTop: 4 }}>
-                        <img src={p.image} alt={p.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      <label style={{ fontSize: 12, fontWeight: 600, color: '#555', display: 'block', marginBottom: 4 }}>Product Image</label>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                        <div style={{ width: 64, height: 64, borderRadius: 8, overflow: 'hidden', border: '2px solid #e5e7eb' }}>
+                          <img src={p.image} alt={p.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                        </div>
+                        <span style={{ fontSize: 12, color: '#888' }}>Current</span>
                       </div>
                     </div>
 
@@ -482,72 +548,54 @@ const FarmerDashboard: React.FC = () => {
                       onClick={() => editFileInputRef.current?.click()}
                       style={{
                         cursor: 'pointer', border: '2px dashed #d1d5db', borderRadius: 10,
-                        padding: '14px 12px', textAlign: 'center', background: '#fff',
-                        transition: 'border-color 0.2s',
+                        padding: '12px 10px', textAlign: 'center', background: '#fff',
+                        transition: 'border-color 0.2s', marginBottom: 8,
                       }}
                     >
-                      <span style={{ fontSize: 24 }}>📷</span>
-                      <p style={{ margin: '4px 0 0', fontWeight: 600, color: '#16a34a', fontSize: 13 }}>
-                        Tap to upload new photos
+                      <span style={{ fontSize: 22 }}>📷</span>
+                      <p style={{ margin: '2px 0 0', fontWeight: 600, color: '#16a34a', fontSize: 13 }}>
+                        Upload new photo (optional)
                       </p>
-                      <p style={{ margin: 0, fontSize: 11, color: '#888' }}>From gallery, camera, or files</p>
                     </div>
 
                     {/* New image previews */}
                     {editImages.length > 0 && (
-                      <div style={{ display: 'flex', gap: 8, marginTop: 10, flexWrap: 'wrap' }}>
+                      <div style={{ display: 'flex', gap: 8, marginTop: 6, marginBottom: 8, flexWrap: 'wrap' }}>
                         {editImages.map((img, idx) => (
-                          <div key={idx} style={{ position: 'relative', width: 64, height: 64, borderRadius: 8, overflow: 'hidden', border: '2px solid #16a34a' }}>
+                          <div key={idx} style={{ position: 'relative', width: 56, height: 56, borderRadius: 8, overflow: 'hidden', border: '2px solid #16a34a' }}>
                             <img src={img.preview} alt={`New ${idx + 1}`} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                            <button
-                              type="button"
-                              onClick={() => removeImage(idx, 'edit')}
-                              style={{
-                                position: 'absolute', top: 1, right: 1,
-                                width: 18, height: 18, borderRadius: '50%',
-                                background: 'rgba(220,38,38,0.85)', color: '#fff',
-                                border: 'none', fontSize: 11, cursor: 'pointer',
-                                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                              }}
+                            <button type="button" onClick={() => removeImage(idx, 'edit')}
+                              style={{ position: 'absolute', top: 1, right: 1, width: 16, height: 16, borderRadius: '50%', background: 'rgba(220,38,38,0.85)', color: '#fff', border: 'none', fontSize: 10, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                             >×</button>
                           </div>
                         ))}
-                        {editImages.length < 5 && (
-                          <div
-                            onClick={() => editFileInputRef.current?.click()}
-                            style={{
-                              width: 64, height: 64, borderRadius: 8,
-                              border: '2px dashed #d1d5db', cursor: 'pointer',
-                              display: 'flex', alignItems: 'center', justifyContent: 'center',
-                              fontSize: 20, color: '#aaa', background: '#fff',
-                            }}
-                          >+</div>
-                        )}
                       </div>
                     )}
 
+                    {/* Save / Cancel */}
                     <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
                       <button
                         onClick={() => {
+                          const updates: Partial<typeof p> = {
+                            name: editForm.name.trim() || p.name,
+                            price: Number(editForm.price) || p.price,
+                            availableQty: Number(editForm.quantity) >= 0 ? Number(editForm.quantity) : p.availableQty,
+                            description: editForm.description || p.description,
+                            farmingMethod: editForm.method,
+                          };
                           if (editImages.length > 0) {
-                            updateProductInStore(p.id, {
-                              image: editImages[0].preview,
-                              images: editImages.map(img => img.preview),
-                            });
-                            alert(`✅ "${p.name}" images updated!`);
+                            updates.image = editImages[0].preview;
+                            updates.images = editImages.map(img => img.preview);
                           }
-                          // Don't revoke blob URLs since they're now used in the product
+                          updateProductInStore(p.id, updates);
                           setEditImages([]);
                           setEditingProductId(null);
                         }}
-                        disabled={editImages.length === 0}
                         style={{
                           flex: 1, padding: '10px', borderRadius: 8, border: 'none',
-                          background: editImages.length === 0 ? '#d1d5db' : '#16a34a',
-                          color: '#fff', fontWeight: 600, fontSize: 14,
-                          cursor: editImages.length === 0 ? 'not-allowed' : 'pointer',
+                          background: '#16a34a', color: '#fff', fontWeight: 600, fontSize: 14, cursor: 'pointer',
                         }}
-                      >Save Images</button>
+                      >💾 Save Changes</button>
                       <button
                         onClick={() => {
                           editImages.forEach(img => URL.revokeObjectURL(img.preview));
