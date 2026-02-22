@@ -2,18 +2,20 @@ import React, { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useLanguage } from '../context/LanguageContext';
 import { useCart } from '../context/CartContext';
-import { getProductById, getFarmerById, getReviewsByProduct, getProductsByFarmer } from '../data/mockData';
+import { useProducts } from '../context/ProductContext';
+import { getFarmerById, getReviewsByProduct } from '../data/mockData';
 
 const ProductDetail: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const { t } = useLanguage();
   const { addToCart } = useCart();
   const navigate = useNavigate();
+  const { products } = useProducts();
 
-  const product = getProductById(id ?? '');
+  const product = products.find(p => String(p.id) === String(id));
   const farmer = product ? getFarmerById(product.farmerId) : null;
   const reviews = product ? getReviewsByProduct(product.id) : [];
-  const otherProducts = farmer ? getProductsByFarmer(farmer.id).filter(p => p.id !== product!.id) : [];
+  const otherProducts = farmer ? products.filter(p => p.farmerId === farmer.id && p.id !== product!.id) : [];
   const [selectedImage, setSelectedImage] = useState<number>(0);
   const [qty, setQty] = useState<number>(1);
   const [showReviewForm, setShowReviewForm] = useState<boolean>(false);

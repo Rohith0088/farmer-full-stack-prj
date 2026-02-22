@@ -1,7 +1,8 @@
 import React, { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useLanguage } from '../context/LanguageContext';
-import { farmers, getProductsByFarmer } from '../data/mockData';
+import { useProducts } from '../context/ProductContext';
+import { farmers } from '../data/mockData';
 
 interface NewProduct {
   name: string;
@@ -42,7 +43,8 @@ const FarmerDashboard: React.FC = () => {
   const navigate = useNavigate();
 
   const farmer = farmers[0];
-  const farmerProducts = getProductsByFarmer(farmer.id);
+  const { products: allProducts, addProduct: addProductToStore, removeProduct, updateProduct: updateProductInStore } = useProducts();
+  const farmerProducts = allProducts.filter(p => p.farmerId === farmer.id);
 
   const [activeTab, setActiveTab] = useState<string>('overview');
   const [showAddProduct, setShowAddProduct] = useState<boolean>(false);
@@ -114,10 +116,39 @@ const FarmerDashboard: React.FC = () => {
 
   const handleAddProduct = (e: React.FormEvent<HTMLFormElement>): void => {
     e.preventDefault();
-    const imageCount = productImages.length;
-    alert(`Product "${newProduct.name}" added with ${imageCount} image${imageCount !== 1 ? 's' : ''}! (Demo)`);
-    // Clean up previews
-    productImages.forEach(img => URL.revokeObjectURL(img.preview));
+
+    // Build image URL: use first uploaded image preview or a placeholder
+    const mainImage = productImages.length > 0
+      ? productImages[0].preview
+      : 'https://images.unsplash.com/photo-1542838132-92c53300491e?w=400&h=300&fit=crop';
+    const allImages = productImages.length > 0
+      ? productImages.map(img => img.preview)
+      : [mainImage];
+
+    // Determine emoji based on category
+    const categoryEmojis: Record<string, string> = {
+      fruits: '🍎', vegetables: '🥦', grains: '🌾', dairy: '🥛', organic: '🌿',
+    };
+
+    addProductToStore({
+      name: newProduct.name,
+      emoji: categoryEmojis[newProduct.category] || '🛒',
+      category: newProduct.category,
+      image: mainImage,
+      images: allImages,
+      farmerId: farmer.id,
+      price: Number(newProduct.price),
+      unit: 'kg',
+      availableQty: Number(newProduct.quantity),
+      freshness: 'fresh',
+      harvestDate: new Date().toISOString().slice(0, 10),
+      farmingMethod: newProduct.method,
+      description: newProduct.description || `Fresh ${newProduct.name} from ${farmer.name}'s farm`,
+      source: 'local',
+    });
+
+    alert(`✅ "${newProduct.name}" added successfully! It's now visible on the Home page.`);
+    // Don't revoke blob URLs since they're now used in the product list
     setProductImages([]);
     setShowAddProduct(false);
     setNewProduct({ name: '', category: 'vegetables', price: '', quantity: '', description: '', method: 'Organic' });

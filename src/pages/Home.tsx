@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { useLanguage } from '../context/LanguageContext';
 import { useBlendy } from '../context/BlendyContext';
-import { products as localProducts } from '../data/mockData';
+import { useProducts } from '../context/ProductContext';
 import { fetchEnamProducts } from '../services/enamApi';
 import { fetchFruityviceFruits } from '../services/fruityviceApi';
 import SearchBar from '../components/SearchBar';
@@ -17,6 +17,7 @@ const PRODUCTS_PER_PAGE = 12;
 
 const Home: React.FC = () => {
   const { t } = useLanguage();
+  const { products: localProducts } = useProducts();
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [sortBy, setSortBy] = useState<string>('default');

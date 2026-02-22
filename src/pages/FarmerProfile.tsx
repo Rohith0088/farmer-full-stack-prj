@@ -3,16 +3,18 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { QRCodeSVG } from 'qrcode.react';
 import { useLanguage } from '../context/LanguageContext';
 import { useCart } from '../context/CartContext';
-import { getFarmerById, getProductsByFarmer } from '../data/mockData';
+import { useProducts } from '../context/ProductContext';
+import { getFarmerById } from '../data/mockData';
 
 const FarmerProfile: React.FC = () => {
   const { id } = useParams<{ id: string }>();
   const { t } = useLanguage();
   const { toggleFavoriteFarmer, isFarmerFavorite } = useCart();
   const navigate = useNavigate();
+  const { products } = useProducts();
 
   const farmer = getFarmerById(id as string);
-  const farmerProducts = farmer ? getProductsByFarmer(farmer.id) : [];
+  const farmerProducts = farmer ? products.filter(p => p.farmerId === farmer.id) : [];
 
   if (!farmer) {
     return (

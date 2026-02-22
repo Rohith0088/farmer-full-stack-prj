@@ -4,6 +4,7 @@ import { LanguageProvider } from './context/LanguageContext';
 import { CartProvider } from './context/CartContext';
 import { BlendyProvider } from './context/BlendyContext';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { ProductProvider } from './context/ProductContext';
 import Header from './components/Header';
 import BottomNav from './components/BottomNav';
 import Home from './pages/Home';
@@ -39,6 +40,7 @@ const App: React.FC = () => {
   return (
     <AuthProvider>
       <LanguageProvider>
+        <ProductProvider>
         <CartProvider>
           <BlendyProvider>
           <div className="app-container">
@@ -68,6 +70,7 @@ const App: React.FC = () => {
           </div>
           </BlendyProvider>
         </CartProvider>
+        </ProductProvider>
       </LanguageProvider>
     </AuthProvider>
   );
