@@ -438,8 +438,24 @@ const FarmerDashboard: React.FC = () => {
                       }
                     }}
                   >{editingProductId === p.id ? 'Close' : 'Edit'}</button>
-                  <button className="dp-btn dp-sold" title={t('markSoldOut')}>—</button>
-                  <button className="dp-btn dp-delete" title={t('delete')}>×</button>
+                  <button className="dp-btn dp-sold" title={t('markSoldOut')}
+                    onClick={() => {
+                      updateProductInStore(p.id, { availableQty: 0 });
+                      alert(`"${p.name}" marked as sold out.`);
+                    }}
+                  >—</button>
+                  <button className="dp-btn dp-delete" title={t('delete')}
+                    onClick={() => {
+                      if (window.confirm(`Are you sure you want to delete "${p.name}"?`)) {
+                        removeProduct(p.id);
+                        if (editingProductId === p.id) {
+                          editImages.forEach(img => URL.revokeObjectURL(img.preview));
+                          setEditImages([]);
+                          setEditingProductId(null);
+                        }
+                      }
+                    }}
+                  >×</button>
                 </div>
 
                 {/* Inline edit panel with image upload */}
@@ -513,9 +529,14 @@ const FarmerDashboard: React.FC = () => {
                     <div style={{ display: 'flex', gap: 8, marginTop: 12 }}>
                       <button
                         onClick={() => {
-                          const count = editImages.length;
-                          alert(`${p.name} updated with ${count} new image${count !== 1 ? 's' : ''}! (Demo)`);
-                          editImages.forEach(img => URL.revokeObjectURL(img.preview));
+                          if (editImages.length > 0) {
+                            updateProductInStore(p.id, {
+                              image: editImages[0].preview,
+                              images: editImages.map(img => img.preview),
+                            });
+                            alert(`✅ "${p.name}" images updated!`);
+                          }
+                          // Don't revoke blob URLs since they're now used in the product
                           setEditImages([]);
                           setEditingProductId(null);
                         }}
