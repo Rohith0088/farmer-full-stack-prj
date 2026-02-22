@@ -457,6 +457,15 @@ const FarmerDashboard: React.FC = () => {
                     }}
                     style={p.availableQty === 0 ? { opacity: 0.5 } : {}}
                   >{p.availableQty === 0 ? '✓' : '—'}</button>
+                  <button className="dp-btn" title="Add Stock"
+                    onClick={() => {
+                      const addQty = prompt(`Add stock for "${p.name}"\nCurrent: ${p.availableQty} ${p.unit}\n\nEnter quantity to add:`, '10');
+                      if (addQty && Number(addQty) > 0) {
+                        updateProductInStore(p.id, { availableQty: p.availableQty + Number(addQty) });
+                      }
+                    }}
+                    style={{ background: '#dcfce7', color: '#16a34a', fontWeight: 700, fontSize: 16 }}
+                  >+</button>
                   <button className="dp-btn dp-delete" title={t('delete')}
                     onClick={() => {
                       if (window.confirm(`Delete "${p.name}"? This cannot be undone.`)) {
