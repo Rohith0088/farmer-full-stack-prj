@@ -1,4 +1,5 @@
 const express = require("express");
+const path = require("path");
 const QRCode = require("qrcode");
 const cors = require("cors");
 require("dotenv").config();
@@ -283,8 +284,11 @@ app.post("/generate-qr", async (req, res) => {
   }
 });
 
+// ==================== SERVE REACT BUILD ====================
+app.use(express.static(path.join(__dirname, "build")));
+
 // ==================== HEALTH CHECK ====================
-app.get("/", (req, res) => {
+app.get("/api/health", (req, res) => {
   res.json({ 
     status: "AgriTech Server running",
     services: {
@@ -294,6 +298,11 @@ app.get("/", (req, res) => {
       upiQR: "active",
     },
   });
+});
+
+// All other routes serve the React app
+app.get("*", (req, res) => {
+  res.sendFile(path.join(__dirname, "build", "index.html"));
 });
 
 const PORT = process.env.PORT || 5000;
