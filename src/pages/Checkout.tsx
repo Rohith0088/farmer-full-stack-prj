@@ -5,8 +5,7 @@ import { useCart } from '../context/CartContext';
 import { loadStripe } from '@stripe/stripe-js';
 import { Elements, CardElement, useStripe, useElements } from '@stripe/react-stripe-js';
 import type { StripeCardElementChangeEvent } from '@stripe/stripe-js';
-
-const UPI_QR_API = 'http://localhost:5000/generate-qr';
+import { QRCodeSVG } from 'qrcode.react';
 const STRIPE_API = 'http://localhost:5000/create-payment-intent';
 
 const stripePromise = loadStripe(
@@ -55,8 +54,7 @@ const CheckoutForm: React.FC = () => {
     upiId: 'yadarohit1235@okicici',
   });
 
-  const [qrImage, setQrImage] = useState<string>('');
-  const [qrLoading, setQrLoading] = useState<boolean>(false);
+  const [showQr, setShowQr] = useState<boolean>(false);
   const [qrError, setQrError] = useState<string>('');
   const [paymentVerified, setPaymentVerified] = useState<boolean>(false);
 
@@ -70,7 +68,7 @@ const CheckoutForm: React.FC = () => {
     setFormData(prev => ({ ...prev, [name]: value }));
 
     if (name === 'paymentMethod' && value !== 'upi') {
-      setQrImage('');
+      setShowQr(false);
       setQrError('');
       setPaymentVerified(false);
     }
@@ -81,53 +79,30 @@ const CheckoutForm: React.FC = () => {
     }
   };
 
-  const generateUpiQR = useCallback(async (): Promise<void> => {
+  const upiString = `upi://pay?pa=${formData.upiId.trim()}&pn=${encodeURIComponent(formData.name || 'AgriTech Marketplace')}&am=${getCartTotal()}&cu=INR`;
+
+  const generateUpiQR = useCallback((): void => {
     if (!formData.upiId.trim()) {
       setQrError('Please enter your UPI ID');
       return;
     }
-
-    setQrLoading(true);
     setQrError('');
-    setQrImage('');
     setPaymentVerified(false);
-
-    try {
-      const response = await fetch(UPI_QR_API, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          upiId: formData.upiId.trim(),
-          name: formData.name || 'AgriTech Customer',
-          amount: getCartTotal(),
-        }),
-      });
-
-      if (!response.ok) {
-        throw new Error('Server error');
-      }
-
-      const data = await response.json();
-      setQrImage(data.qrImage);
-    } catch (error) {
-      console.error('QR generation failed:', error);
-      setQrError('Could not generate QR. Make sure the server is running on port 5000.');
-    } finally {
-      setQrLoading(false);
-    }
-  }, [formData.upiId, formData.name, getCartTotal]);
+    setShowQr(true);
+  }, [formData.upiId]);
 
   useEffect(() => {
     if (formData.paymentMethod !== 'upi' || !formData.upiId.trim()) return;
 
     const timer = setTimeout(() => {
       if (formData.upiId.includes('@')) {
-        generateUpiQR();
+        setShowQr(true);
+        setQrError('');
       }
     }, 800);
 
     return () => clearTimeout(timer);
-  }, [formData.upiId, formData.paymentMethod, generateUpiQR]);
+  }, [formData.upiId, formData.paymentMethod]);
 
   const handleStripePayment = async (): Promise<void> => {
     if (!stripe || !elements) {
@@ -396,9 +371,8 @@ const CheckoutForm: React.FC = () => {
                     type="button"
                     className="btn-primary"
                     onClick={generateUpiQR}
-                    disabled={qrLoading}
                   >
-                    {qrLoading ? '...' : ''} Generate QR
+                    Generate QR
                   </button>
                 </div>
               </div>
@@ -409,7 +383,7 @@ const CheckoutForm: React.FC = () => {
                 </div>
               )}
 
-              {qrImage && (
+              {showQr && (
                 <div className="upi-qr-display">
                   <div className="upi-qr-card">
                     <div className="upi-qr-header">
@@ -421,7 +395,14 @@ const CheckoutForm: React.FC = () => {
                     </div>
 
                     <div className="upi-qr-image-wrapper">
-                      <img src={qrImage} alt="UPI QR Code" className="upi-qr-image" />
+                      <QRCodeSVG
+                        value={upiString}
+                        size={250}
+                        bgColor="#ffffff"
+                        fgColor="#2d5016"
+                        level="H"
+                        includeMargin={true}
+                      />
                     </div>
 
                     <div className="upi-qr-amount">
